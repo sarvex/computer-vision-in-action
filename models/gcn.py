@@ -44,8 +44,7 @@ class _BoundaryRefineModule(nn.Module):
         residual = self.conv1(x)
         residual = self.relu(residual)
         residual = self.conv2(residual)
-        out = x + residual
-        return out
+        return x + residual
 
 
 class GCN(nn.Module):
@@ -96,6 +95,4 @@ class GCN(nn.Module):
         fs2 = self.brm6(F.upsample_bilinear(fs1, fm2.size()[2:]) + gcfm3)  # 64
         fs3 = self.brm7(F.upsample_bilinear(fs2, fm1.size()[2:]) + gcfm4)  # 128
         fs4 = self.brm8(F.upsample_bilinear(fs3, fm0.size()[2:]))  # 256
-        out = self.brm9(F.upsample_bilinear(fs4, self.input_size))  # 512
-
-        return out
+        return self.brm9(F.upsample_bilinear(fs4, self.input_size))

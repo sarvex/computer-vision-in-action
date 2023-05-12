@@ -39,7 +39,7 @@ class SegNet(nn.Module):
         if pretrained:
             vgg.load_state_dict(torch.load(vgg19_bn_path))
         features = list(vgg.features.children())
-        self.enc1 = nn.Sequential(*features[0:7])
+        self.enc1 = nn.Sequential(*features[:7])
         self.enc2 = nn.Sequential(*features[7:14])
         self.enc3 = nn.Sequential(*features[14:27])
         self.enc4 = nn.Sequential(*features[27:40])

@@ -45,7 +45,7 @@ def bbox_to_rect(bbox, color):
 class Benchmark():
     """Benchmark programs."""
     def __init__(self, prefix=None):
-        self.prefix = prefix + ' ' if prefix else ''
+        self.prefix = f'{prefix} ' if prefix else ''
 
     def __enter__(self):
         self.start = time.time()
@@ -91,8 +91,9 @@ def data_iter_consecutive(corpus_indices, batch_size, num_steps, ctx=None):
     corpus_indices = nd.array(corpus_indices, ctx=ctx)
     data_len = len(corpus_indices)
     batch_len = data_len // batch_size
-    indices = corpus_indices[0 : batch_size * batch_len].reshape((
-        batch_size, batch_len))
+    indices = corpus_indices[: batch_size * batch_len].reshape(
+        (batch_size, batch_len)
+    )
     epoch_size = (batch_len - 1) // num_steps
     for i in range(epoch_size):
         i = i * num_steps
@@ -155,7 +156,7 @@ def download_voc_pascal(data_dir='../data'):
 def evaluate_accuracy(data_iter, net, device=None):
     if device is None and isinstance(net, torch.nn.Module):
         # 如果没指定device就使用net的device
-        device = list(net.parameters())[0].device 
+        device = list(net.parameters())[0].device
     acc_sum, n = 0.0, 0
     with torch.no_grad():
         for X, y in data_iter:
@@ -163,12 +164,11 @@ def evaluate_accuracy(data_iter, net, device=None):
                 net.eval() # 评估模式, 这会关闭dropout
                 acc_sum += (net(X.to(device)).argmax(dim=1) == y.to(device)).float().sum().cpu().item()
                 net.train() # 改回训练模式
-            else: # 自定义的模型, 3.13节之后不会用到, 不考虑GPU
-                if('is_training' in net.__code__.co_varnames): # 如果有is_training这个参数
-                    # 将is_training设置成False
-                    acc_sum += (net(X, is_training=False).argmax(dim=1) == y).float().sum().item() 
-                else:
-                    acc_sum += (net(X).argmax(dim=1) == y).float().sum().item() 
+            elif ('is_training' in net.__code__.co_varnames): # 如果有is_training这个参数
+                # 将is_training设置成False
+                acc_sum += (net(X, is_training=False).argmax(dim=1) == y).float().sum().item()
+            else:
+                acc_sum += (net(X).argmax(dim=1) == y).float().sum().item()
             n += y.shape[0]
     return acc_sum / n
 
@@ -234,14 +234,11 @@ def load_data_fashion_mnist(batch_size, resize=None, root='~/datasets/FashionMNI
     if resize:
         trans.append(torchvision.transforms.Resize(size=resize))
     trans.append(torchvision.transforms.ToTensor())
-    
+
     transform = torchvision.transforms.Compose(trans)
     mnist_train = torchvision.datasets.FashionMNIST(root=root, train=True, download=True, transform=transform)
     mnist_test = torchvision.datasets.FashionMNIST(root=root, train=False, download=True, transform=transform)
-    if sys.platform.startswith('win'):
-        num_workers = 0  # 0表示不用额外的进程来加速读取数据
-    else:
-        num_workers = 4
+    num_workers = 0 if sys.platform.startswith('win') else 4
     train_iter = torch.utils.data.DataLoader(mnist_train, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     test_iter = torch.utils.data.DataLoader(mnist_test, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
@@ -273,7 +270,7 @@ def load_data_time_machine():
     with open('../data/timemachine.txt') as f:
         corpus_chars = f.read()
     corpus_chars = corpus_chars.replace('\n', ' ').replace('\r', ' ').lower()
-    corpus_chars = corpus_chars[0:10000]
+    corpus_chars = corpus_chars[:10000]
     idx_to_char = list(set(corpus_chars))
     char_to_idx = dict([(char, i) for i, char in enumerate(idx_to_char)])
     vocab_size = len(char_to_idx)
@@ -361,16 +358,15 @@ def read_imdb(folder='train'):
 
 def read_voc_images(root="../../data/VOCdevkit/VOC2012", 
                     is_train=True, max_num=None):
-    txt_fname = '%s/ImageSets/Segmentation/%s' % (
-        root, 'train.txt' if is_train else 'val.txt')
+    txt_fname = f"{root}/ImageSets/Segmentation/{'train.txt' if is_train else 'val.txt'}"
     with open(txt_fname, 'r') as f:
         images = f.read().split()
     if max_num is not None:
         images = images[:min(max_num, len(images))]
     features, labels = [None] * len(images), [None] * len(images)
     for i, fname in tqdm(enumerate(images)):
-        features[i] = Image.open('%s/JPEGImages/%s.jpg' % (root, fname)).convert("RGB")
-        labels[i] = Image.open('%s/SegmentationClass/%s.png' % (root, fname)).convert("RGB")
+        features[i] = Image.open(f'{root}/JPEGImages/{fname}.jpg').convert("RGB")
+        labels[i] = Image.open(f'{root}/SegmentationClass/{fname}.png').convert("RGB")
     return features, labels # PIL image
 
 # ########################### 3.7 #####################################3
@@ -582,10 +578,7 @@ def train_and_predict_rnn(rnn, get_params, init_rnn_state, num_hiddens,
                           lr, clipping_theta, batch_size, pred_period,
                           pred_len, prefixes):
     """Train an RNN model and predict the next item in the sequence."""
-    if is_random_iter:
-        data_iter_fn = data_iter_random
-    else:
-        data_iter_fn = data_iter_consecutive
+    data_iter_fn = data_iter_random if is_random_iter else data_iter_consecutive
     params = get_params()
     loss = gloss.SoftmaxCrossEntropyLoss()
 
@@ -828,7 +821,7 @@ class VOCSegDataset(torch.utils.data.Dataset):
             torchvision.transforms.Normalize(mean=self.rgb_mean, 
                                              std=self.rgb_std)
         ])
-        
+
         self.crop_size = crop_size # (h, w)
         features, labels = read_voc_images(root=voc_dir, 
                                            is_train=is_train, 
@@ -836,7 +829,7 @@ class VOCSegDataset(torch.utils.data.Dataset):
         self.features = self.filter(features) # PIL image
         self.labels = self.filter(labels)     # PIL image
         self.colormap2label = colormap2label
-        print('read ' + str(len(self.features)) + ' valid examples')
+        print(f'read {len(self.features)} valid examples')
 
     def filter(self, imgs):
         return [img for img in imgs if (

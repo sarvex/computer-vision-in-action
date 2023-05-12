@@ -337,8 +337,7 @@ def predict_ch3(net, test_iter, n=6):
     trues = L0CV.get_fashion_mnist_labels(y)
     preds = L0CV.get_fashion_mnist_labels(L0CV.argmax(net(X), axis=1))
     titles = [true +'\n' + pred for true, pred in zip(trues, preds)]
-    L0CV.show_images(
-        L0CV.reshape(X[0:n], (n, 28, 28)), 1, n, titles=titles[0:n])
+    L0CV.show_images(L0CV.reshape(X[:n], (n, 28, 28)), 1, n, titles=titles[:n])
 
 
 # Defined in file: ./chapter_multilayer-perceptrons/underfit-overfit.md
@@ -352,7 +351,7 @@ def evaluate_loss(net, data_iter, loss):
 
 
 # Defined in file: ./chapter_multilayer-perceptrons/kaggle-house-price.md
-DATA_HUB = dict()
+DATA_HUB = {}
 DATA_URL = 'http://d2l-data.s3-accelerate.amazonaws.com/'
 
 
@@ -367,10 +366,10 @@ def download(name, cache_dir=os.path.join('..', 'data')):
         sha1 = hashlib.sha1()
         with open(fname, 'rb') as f:
             while True:
-                data = f.read(1048576)
-                if not data:
+                if data := f.read(1048576):
+                    sha1.update(data)
+                else:
                     break
-                sha1.update(data)
         if sha1.hexdigest() == sha1_hash:
             return fname  # Hit cache
     print(f'Downloading {fname} from {url}...')
@@ -537,7 +536,7 @@ class Vocab:
         if tokens is None:
             tokens = []
         if reserved_tokens is None:
-            reserved_tokens = [] 
+            reserved_tokens = []
         # Sort according to frequencies
         counter = count_corpus(tokens)
         self.token_freqs = sorted(counter.items(), key=lambda x: x[1],
@@ -546,7 +545,7 @@ class Vocab:
         self.unk, uniq_tokens = 0, ['<unk>'] + reserved_tokens
         uniq_tokens += [token for token, freq in self.token_freqs
                         if freq >= min_freq and token not in uniq_tokens]
-        self.idx_to_token, self.token_to_idx = [], dict()
+        self.idx_to_token, self.token_to_idx = [], {}
         for token in uniq_tokens:
             self.idx_to_token.append(token)
             self.token_to_idx[token] = len(self.idx_to_token) - 1
@@ -698,11 +697,9 @@ def grad_clipping(grads, theta):
     norm = tf.cast(norm, tf.float32)
     new_grad = []
     if tf.greater(norm, theta):
-        for grad in grads:
-            new_grad.append(grad * theta / norm)
+        new_grad.extend(grad * theta / norm for grad in grads)
     else:
-        for grad in grads:
-            new_grad.append(grad)
+        new_grad.extend(iter(grads))
     return new_grad
 
 
@@ -864,7 +861,7 @@ def train_2d(trainer, steps=20):
     # be used later in the chapter
     x1, x2, s1, s2 = -5, -2, 0, 0
     results = [(x1, x2)]
-    for i in range(steps):
+    for _ in range(steps):
         x1, x2, s1, s2 = trainer(x1, x2, s1, s2)
         results.append((x1, x2))
     return results

@@ -16,15 +16,15 @@ def get_patch(input_array, i, j, filter_width,
     start_i = i * stride
     start_j = j * stride
     if input_array.ndim == 2:
-	input_array_conv = input_array[
-            start_i : start_i + filter_height,
-            start_j : start_j + filter_width]
-	return input_array_conv
+        return input_array[
+            start_i : start_i + filter_height, start_j : start_j + filter_width
+        ]
     elif input_array.ndim == 3:
-        input_array_conv = input_array[:,
+        return input_array[
+            :,
             start_i : start_i + filter_height,
-            start_j : start_j + filter_width]
-	return input_array_conv
+            start_j : start_j + filter_width,
+        ]
        
 
 # 获取一个2D区域的最大值所在的索引
@@ -68,28 +68,27 @@ def padding(input_array, zp):
     '''
     if zp == 0:
         return input_array
-    else:
-        if input_array.ndim == 3:
-            input_width = input_array.shape[2]
-            input_height = input_array.shape[1]
-            input_depth = input_array.shape[0]
-            padded_array = np.zeros((
-                input_depth, 
-                input_height + 2 * zp,
-                input_width + 2 * zp))
-            padded_array[:,
-                zp : zp + input_height,
-                zp : zp + input_width] = input_array
-            return padded_array
-        elif input_array.ndim == 2:
-            input_width = input_array.shape[1]
-            input_height = input_array.shape[0]
-            padded_array = np.zeros((
-                input_height + 2 * zp,
-                input_width + 2 * zp))
-            padded_array[zp : zp + input_height,
-                zp : zp + input_width] = input_array
-            return padded_array
+    if input_array.ndim == 3:
+        input_width = input_array.shape[2]
+        input_height = input_array.shape[1]
+        input_depth = input_array.shape[0]
+        padded_array = np.zeros((
+            input_depth, 
+            input_height + 2 * zp,
+            input_width + 2 * zp))
+        padded_array[:,
+            zp : zp + input_height,
+            zp : zp + input_width] = input_array
+        return padded_array
+    elif input_array.ndim == 2:
+        input_width = input_array.shape[1]
+        input_height = input_array.shape[0]
+        padded_array = np.zeros((
+            input_height + 2 * zp,
+            input_width + 2 * zp))
+        padded_array[zp : zp + input_height,
+            zp : zp + input_width] = input_array
+        return padded_array
 
 
 # 对numpy数组进行element wise操作
@@ -138,19 +137,20 @@ class ConvLayer(object):
         self.zero_padding = zero_padding
         self.stride = stride
         self.output_width = \
-            ConvLayer.calculate_output_size(
+                ConvLayer.calculate_output_size(
             self.input_width, filter_width, zero_padding,
             stride)
         self.output_height = \
-            ConvLayer.calculate_output_size(
+                ConvLayer.calculate_output_size(
             self.input_height, filter_height, zero_padding,
             stride)
         self.output_array = np.zeros((self.filter_number, 
             self.output_height, self.output_width))
         self.filters = []
-        for i in range(filter_number):
-            self.filters.append(Filter(filter_width, 
-                filter_height, self.channel_number))
+        self.filters.extend(
+            Filter(filter_width, filter_height, self.channel_number)
+            for _ in range(filter_number)
+        )
         self.activator = activator
         self.learning_rate = learning_rate
 

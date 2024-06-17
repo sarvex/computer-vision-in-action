@@ -28,4 +28,4 @@ ipython==7.23.1
 opencv-python==4.4.0.44
 tqdm==4.43.0
 
-urllib3==1.25.6
+urllib3==1.26.19
